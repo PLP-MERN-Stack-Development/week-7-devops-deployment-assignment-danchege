@@ -1,0 +1,77 @@
+name: Football Updates CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # Backend
+    - name: Backend - Install dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Backend - Run tests
+      working-directory: ./backend
+      run: npm test
+
+    - name: Backend - Build
+      working-directory: ./backend
+      run: npm run build
+
+    # Frontend
+    - name: Frontend - Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Frontend - Run tests
+      working-directory: ./frontend
+      run: npm test
+
+    - name: Frontend - Build
+      working-directory: ./frontend
+      run: npm run build
+
+    # Deploy
+    - name: Deploy Backend to Heroku
+      if: github.ref == 'refs/heads/main'
+      uses: akhileshns/heroku-deploy@v3.12.12
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: "football-updates-backend"
+        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        buildpack: nodejs
+        
+    - name: Deploy Frontend to Vercel
+      if: github.ref == 'refs/heads/main'
+      uses: amondnet/vercel-action@v20
+      with:
+        vercel_token: ${{ secrets.VERCEL_TOKEN }}
+        vercel_org: ${{ secrets.VERCEL_ORG }}
+        vercel_project: football-updates-frontend
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up monitoring
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Setting up monitoring..."
+        # Add monitoring setup commands here
+        # For example, setting up Sentry or New Relic
+        # This is just a placeholder for now
+        echo "Monitoring setup complete"
